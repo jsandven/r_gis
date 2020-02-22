@@ -1,0 +1,124 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+https://www.usna.edu/Users/oceano/pguth/md_help/html/tbme6h0z.htm
+```{r setup}
+library(sf)
+library(stars)
+library(xml2)
+library(flatxml)
+```
+
+```{r}
+dir.create("kml")
+zipF<- "baronskogenelg.kmz"
+outDir<-"kml/"
+unzip(zipF,exdir=outDir)
+```
+
+
+```{r}
+doc.kml <- read_xml("kml/doc.kml")
+
+jpg <- xml_text(xml_find_all(doc.kml, ".//d1:href", xml_ns(doc.kml)))
+north <- xml_text(xml_find_all(doc.kml, ".//d1:north", xml_ns(doc.kml)))
+south <- xml_text(xml_find_all(doc.kml, ".//d1:south", xml_ns(doc.kml)))
+east <- xml_text(xml_find_all(doc.kml, ".//d1:east", xml_ns(doc.kml)))
+west <- xml_text(xml_find_all(doc.kml, ".//d1:west", xml_ns(doc.kml)))
+rotation <- xml_text(xml_find_all(doc.kml, ".//d1:rotation", xml_ns(doc.kml)))
+file_name <- substr(jpg, 7, 24)
+df <- data.frame(jpg,north,south,east,west,rotation,file_name)           
+```
+World file contents
+The contents of the world file will look something like this:
+
+20.17541308822119
+0.00000000000000
+0.00000000000000
+-20.17541308822119
+424178.11472601280548
+4313415.90726399607956
+
+Note: values cannot be in scientific notation.
+The values are inputs into the following formulas:
+
+x1 = Ax + By + C
+y1 = Dx + Ey + F
+
+where the variables represent the following:
+
+x1 = calculated x-coordinate of the pixel on the map
+y1 = calculated y-coordinate of the pixel on the map
+x = column number of a pixel in the image
+y = row number of a pixel in the image
+A = x-scale; dimension of a pixel in map units in x direction
+B,D = rotation terms
+C,F = translation terms; x,y map coordinates of the center of the upper-left pixel
+E = negative of y-scale; dimension of a pixel in map units in y direction
+The y-scale (E) is negative because the origins of an image and a geographic coordinate system are different. The origin of an image is located in the upper-left corner, whereas the origin of the map coordinate system is located in the lower-left corner. Row values in the image increase from the origin downward, while y-coordinate values in the map increase from the origin upward.
+
+The transformation parameters are stored in the world file in this order:
+
+20.17541308822119 = A
+0.00000000000000 = D
+0.00000000000000 = B
+-20.17541308822119 = E
+424178.11472601280548 = C
+4313415.90726399607956 = F
+
+```{r}
+
+file_list <- list.files("kml", pattern = "*.jpg", recursive = T, full.names = T)
+for (file in file_list) {
+  tmp <- raster::raster(file)
+  file_name_out <- substr(file, 11, 28)
+  tmp1 <- df %>% filter(file_name_out == file_name)
+  lon1 <- as.numeric(as.character(tmp1$south[1])) 
+  print(lon1)
+  lon2 <- as.numeric(as.character(tmp1$north[1]))
+  print(lon2)
+  lat1 <- as.numeric(as.character(tmp1$east[1]))
+  print(lat1)
+  lat2 <- as.numeric(as.character(tmp1$west[1]))
+  print(lat2)
+  rotation <- as.numeric(as.character(tmp1$rotation[1]))
+  xsize = dim(tmp)[1]
+  print(xsize)
+  ysize = dim(tmp)[2]
+  print(ysize)
+  if (lon1 < lon2) {
+    t = lon1
+    lon1 = lon2
+    lon2 = t
+  }
+
+  if (lat1 > lat2) {
+    t = +lat1
+    lat1 = lat2
+    lat2 = t
+  }
+# dimX=$(echo "($east-($west))/$width" | bc -l)
+# dimY=$(echo "($south-($north))/$height" | bc -l)
+  ppx = (lon1 - lon2) / xsize
+  ppy = (lat1 - lat2) / ysize
+print(ppx)
+print(ppy)
+  
+  cat(
+    ppx,
+    "0",
+    "0", #rotation,
+    ppy,
+    lat2 = lat2 + (ppy / 2), # // y center of pixel
+    lon2 = lon2 + (ppx / 2), # // x center of pixel
+    file = paste0("kml/files/", file_name_out, ".jgw"),
+    sep = "\n",
+    append = F
+  )
+}
+# C=$(echo "$west+($dimX/2)" | bc -l)
+# F=$(echo "$north+($dimY/2)" | bc -l)
+```
+
+
