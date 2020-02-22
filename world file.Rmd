@@ -11,7 +11,7 @@ library(flatxml)
 library(tidyverse)
 ```
 
-```{r}
+```{r unzip}
 dir.create("kml")
 zipF<- "baronskogenelg.kmz"
 outDir<-"kml/"
@@ -19,24 +19,30 @@ unzip(zipF,exdir=outDir)
 ```
 
 
-```{r}
+```{r load}
 doc.kml <- read_xml("kml/doc.kml")
 
-jpg <- xml_text(xml_find_all(doc.kml, ".//d1:href", xml_ns(doc.kml)))
-north <- xml_text(xml_find_all(doc.kml, ".//d1:north", xml_ns(doc.kml)))
-south <- xml_text(xml_find_all(doc.kml, ".//d1:south", xml_ns(doc.kml)))
-east <- xml_text(xml_find_all(doc.kml, ".//d1:east", xml_ns(doc.kml)))
-west <- xml_text(xml_find_all(doc.kml, ".//d1:west", xml_ns(doc.kml)))
-rotation <- xml_text(xml_find_all(doc.kml, ".//d1:rotation", xml_ns(doc.kml)))
+jpg <-
+  xml_text(xml_find_all(doc.kml, ".//d1:href", xml_ns(doc.kml)))
+north <-
+  xml_text(xml_find_all(doc.kml, ".//d1:north", xml_ns(doc.kml)))
+south <-
+  xml_text(xml_find_all(doc.kml, ".//d1:south", xml_ns(doc.kml)))
+east <-
+  xml_text(xml_find_all(doc.kml, ".//d1:east", xml_ns(doc.kml)))
+west <-
+  xml_text(xml_find_all(doc.kml, ".//d1:west", xml_ns(doc.kml)))
+rotation <-
+  xml_text(xml_find_all(doc.kml, ".//d1:rotation", xml_ns(doc.kml)))
 file_name <- substr(jpg, 7, 24)
-df <- data.frame(jpg,north,south,east,west,rotation,file_name)           
+df <- data.frame(jpg, north, south, east, west, rotation, file_name)           
 ```
 For a description of the world file look at the following sites:
 https://en.wikipedia.org/wiki/World_file
 https://egb13.net/worldfile-calculator
 #Loop
-This section loops through all the raster files and extract height and width from the images files. The coordinates are extracted from the KML file.
-```{r}
+This loop extracts height and width from the raster files and coordinates from the KML file.
+```{r world file}
 
 file_list <- list.files("kml", pattern = "*.jpg", recursive = T, full.names = T)
 for (file in file_list) {
